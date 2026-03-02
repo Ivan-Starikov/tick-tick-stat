@@ -1,33 +1,22 @@
-import { useRef } from "react";
-
-const siteUrl = "http://localhost:5173/tick-tick-stat/";
+const TICK_CLIENT_ID = import.meta.env.VITE_CLIENT_ID;
+const REDIRECT_URI = "http://localhost:5173/";
+const SCOPE = 'tasks:write tasks:read'
 
 function App() {
-  const formRef = useRef(null);
-
-  const clientId = import.meta.env.VITE_CLIENT_ID;
-  const clientSecret = import.meta.env.VITE_CLIENT_SECRET;
-
   const handleSubmit = () => {
-    if (formRef.current) {
-      formRef.current.submit();
-    }
+    const state = crypto.randomUUID();
+
+    const authUrl = `https://ticktick.com/oauth/authorize?` +
+        `response_type=code` +
+        `&client_id=${TICK_CLIENT_ID}` +
+        `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+        `&scope=${encodeURIComponent(SCOPE)}` +
+        `&state=${state}`;
+
+    window.location.href = authUrl;
   };
   return (
     <>
-      <form
-        ref={formRef}
-        action="https://ticktick.com/oauth/authorize"
-        method="POST"
-        style={{ display: "none" }}
-      >
-        <input type="hidden" name="client_id" value={clientId} />
-        <input type="hidden" name="scope" value="scope" />
-        <input type="hidden" name="state" value="state" />
-        <input type="hidden" name="redirect_uri" value={siteUrl} />
-        <input type="hidden" name="response_type" value="code" />
-      </form>
-
       <button onClick={handleSubmit}>Redirect via POST with parameters</button>
     </>
   );

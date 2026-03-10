@@ -1,17 +1,9 @@
-import { useEffect } from "react";
-import axios from "axios";
-
 function App() {
-  const fetchApi = async () => {
-    const response = await axios.get("http://localhost:8080/api");
-    console.log(response.data);
+  const authInTT = () => {
+    window.location.href = "http://localhost:8080/ttAuth";
   };
 
-  useEffect(() => {
-    fetchApi();
-  }, []);
-
-  return <div></div>;
+  return <button onClick={authInTT}>Click to Tick Tick Auth</button>;
 }
 
 export default App;

@@ -11,21 +11,33 @@ const clientId = process.env.CLIENT_ID;
 const redirectUri = process.env.REDIRECT_URI;
 const clientSecret = process.env.CLIENT_SECRET;
 
-const corsoptions = {
-  origin: ["http://localhost:5173"],
-};
+const ttApiUrl = "https://api.ticktick.com/open/v1";
 
 const app = express();
 
-app.use(cors(corsoptions));
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  }),
+);
 
 app.use(
   session({
     secret: "my-secret",
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
+    cookie: { sameSite: "lax" },
   }),
 );
+
+function requireAuth(req, res, next) {
+  if (!req.session || !req.session.accessToken) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  next();
+}
 
 app.get("/ttAuth", (req, res) => {
   const state = crypto.randomBytes(16).toString("hex");
@@ -55,7 +67,7 @@ app.get("/ttAuthCallback", async (req, res) => {
 
   body.append("grant_type", grantType);
   body.append("code", code);
-  body.append("redirectUri", redirectUri);
+  body.append("redirect_uri", redirectUri);
   body.append("scope", scope);
 
   try {
@@ -74,10 +86,37 @@ app.get("/ttAuthCallback", async (req, res) => {
       return res.status(500).json(tokenData);
     }
 
-    res.json(tokenData);
+    req.session.accessToken = tokenData.access_token;
   } catch (err) {
     console.error(err);
     res.status(500).send("Token exchange failed");
+  }
+
+  res.redirect(`http://localhost:5173`);
+});
+
+app.get("/auth-status", (req, res) => {
+  res.json({
+    authenticated: !!req.session.accessToken,
+  });
+});
+
+app.get("/project", requireAuth, async (req, res) => {
+  try {
+    const response = await fetch(`${ttApiUrl}/project`, {
+      headers: {
+        Authorization: `Bearer ${req.session.accessToken}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res
+      .status(500)
+      .json({ error: "Failed to fetch projects", details: err.message });
   }
 });
 
